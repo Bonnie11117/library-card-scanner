@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📚 Номын сан — Скан</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── PERMISSION SCREEN ── */
+  #permission-screen {
+    position: fixed; inset: 0;
+    background: #0f172a;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px; gap: 20px; z-index: 20;
+  }
+  .perm-icon  { font-size: 72px; }
+  .perm-title { font-size: 24px; font-weight: 800; color: #f1f5f9; text-align: center; }
+  .perm-desc  { font-size: 14px; color: #64748b; text-align: center; line-height: 1.7; max-width: 320px; }
+  .perm-btn {
+    width: 100%; max-width: 320px; padding: 17px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white; border: none; border-radius: 14px;
+    font-size: 18px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+    transition: transform 0.1s;
+  }
+  .perm-btn:active { transform: scale(0.97); }
+
+  /* ── CAMERA SCREEN ── */
+  #camera-screen {
+    position: fixed; inset: 0;
+    background: #000;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  #camera-video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  #camera-canvas { display: none; }
+  .cam-overlay {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 20px;
+    width: 100%; padding: 24px;
+  }
+  .cam-title {
+    font-size: 16px; font-weight: 700; color: #fff;
+    text-align: center;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+  }
+  .scan-box {
+    width: 260px; height: 260px; position: relative;
+  }
+  .corner {
+    position: absolute;
+    width: 30px; height: 30px;
+    border-color: #818cf8; border-style: solid;
+  }
+  .corner-tl { top: 0; left: 0;  border-width: 4px 0 0 4px; border-radius: 4px 0 0 0; }
+  .corner-tr { top: 0; right: 0; border-width: 4px 4px 0 0; border-radius: 0 4px 0 0; }
+  .corner-bl { bottom: 0; left: 0;  border-width: 0 0 4px 4px; border-radius: 0 0 0 4px; }
+  .corner-br { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-radius: 0 0 4px 0; }
+  .scan-line {
+    position: absolute; left: 4px; right: 4px; height: 2px;
+    background: linear-gradient(90deg, transparent, #818cf8, #c7d2fe, #818cf8, transparent);
+    box-shadow: 0 0 10px #6366f1;
+    animation: scanMove 1.8s ease-in-out infinite;
+  }
+  @keyframes scanMove {
+    0%   { top: 8px; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: 248px; opacity: 0; }
+  }
+  .cam-hint {
+    font-size: 13px; color: rgba(255,255,255,0.6);
+    text-align: center;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  }
+  .cam-status {
+    background: rgba(15,23,42,0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 24px; padding: 10px 22px;
+    font-size: 14px; font-weight: 600; color: #a5b4fc;
+    border: 1px solid rgba(99,102,241,0.3);
+  }
+  .cam-status.success {
+    background: rgba(20,83,45,0.9);
+    color: #86efac; border-color: #22c55e;
+  }
+
+  /* ── FORM SCREEN ── */
+  #form-screen {
+    display: none; min-height: 100vh;
+    flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 14px;
+  }
+  .form-header { text-align: center; margin-bottom: 4px; }
+  .form-header h1 { font-size: 22px; font-weight: 800; color: #f1f5f9; }
+  .form-header p  { font-size: 12px; color: #64748b; margin-top: 3px; }
+
+  .book-badge {
+    width: 100%; max-width: 420px;
+    background: linear-gradient(135deg, #14532d, #166534);
+    border: 1px solid #22c55e; border-radius: 14px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .book-badge-icon { font-size: 32px; }
+  .book-badge-label { font-size: 10px; color: #4ade80; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+  .book-badge-id { font-size: 18px; font-weight: 800; color: #86efac; font-family: 'Courier New', monospace; margin-top: 2px; }
+
+  .card {
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 16px; padding: 20px;
+    width: 100%; max-width: 420px;
+  }
+  .card-title {
+    font-size: 10px; font-weight: 700; color: #6366f1;
+    letter-spacing: 2px; margin-bottom: 16px; text-transform: uppercase;
+  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    flex: 1; padding: 12px; border: 2px solid #334155;
+    border-radius: 10px; background: none; color: #94a3b8;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab.active { border-color: #6366f1; background: #1e1b4b; color: #a5b4fc; }
+
+  .input-group { margin-bottom: 14px; }
+  label { font-size: 11px; color: #64748b; display: block; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.5px; }
+  input, select {
+    width: 100%; padding: 12px 14px;
+    background: #0f172a; border: 1px solid #334155;
+    border-radius: 10px; color: #e2e8f0; font-size: 15px; outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: #6366f1; }
+
+  .btn-submit {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #059669, #10b981);
+    color: white; border: none; border-radius: 12px;
+    font-size: 17px; font-weight: 800; cursor: pointer;
+    margin-top: 4px; transition: transform 0.1s;
+    box-shadow: 0 4px 16px rgba(16,185,129,0.3);
+  }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled { opacity: 0.5; }
+
+  .btn-rescan {
+    width: 100%; max-width: 420px; padding: 13px;
+    background: none; border: 1px solid #334155;
+    border-radius: 12px; color: #64748b;
+    font-size: 14px; cursor: pointer;
+  }
+
+  /* ── RESULT ── */
+  .result-card {
+    display: none; width: 100%; max-width: 420px;
+    padding: 28px; border-radius: 16px; text-align: center;
+  }
+  .result-card.success { background: #14532d; border: 1px solid #22c55e; }
+  .result-card.error   { background: #450a0a; border: 1px solid #ef4444; }
+  .result-icon  { font-size: 52px; margin-bottom: 12px; }
+  .result-title { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+  .result-sub   { font-size: 14px; color: #94a3b8; margin-bottom: 20px; line-height: 1.6; }
+  .btn-next {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white; border: none; border-radius: 12px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── PERMISSION SCREEN ── -->
+<div id="permission-screen">
+  <div class="perm-icon">📚</div>
+  <div class="perm-title">Номын сан</div>
+  <div class="perm-desc">
+    Номын QR кодыг уншихын тулд камерын зөвшөөрөл шаардлагатай.<br><br>
+    Доорх товч дарахад <strong>"Allow"</strong> дарна уу.
+  </div>
+  <button class="perm-btn" onclick="requestCamera()">📷 Камер нээж эхлэх</button>
+</div>
+
+<!-- ── CAMERA SCREEN ── -->
+<div id="camera-screen">
+  <video id="camera-video" playsinline autoplay muted></video>
+  <canvas id="camera-canvas"></canvas>
+  <div class="cam-overlay">
+    <div class="cam-title">📚 Номын QR кодыг скан хийнэ үү</div>
+    <div class="scan-box">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+      <div class="scan-line"></div>
+    </div>
+    <div class="cam-hint">Номын QR кодыг хүрээн дотор байрлуулна уу</div>
+    <div class="cam-status" id="cam-status">🔍 Хайж байна...</div>
+  </div>
+</div>
+
+<!-- ── FORM SCREEN ── -->
+<div id="form-screen">
+  <div class="form-header">
+    <h1>📚 Номын сан</h1>
+    <p>Мэдээлэл оруулаад бүртгэх товч дарна уу</p>
+  </div>
+
+  <div class="book-badge">
+    <div class="book-badge-icon">✅</div>
+    <div>
+      <div class="book-badge-label">Скан хийгдсэн номын ID</div>
+      <div class="book-badge-id" id="badge-book-id">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Үйлдэл сонгох</div>
+    <div class="tabs">
+      <button class="tab active" id="tab-loan"   onclick="setAction('Түрээслэх')">📖 Түрээслэх</button>
+      <button class="tab"        id="tab-return" onclick="setAction('Буцаалт')">✅ Буцаалт</button>
+    </div>
+
+    <div class="input-group">
+      <label>СУРАГЧИЙН НЭР</label>
+      <input type="text" id="stuName" placeholder="Овог Нэр" autocomplete="name" autocorrect="off">
+    </div>
+
+    <div class="input-group">
+      <label>АНГИ БҮЛЭГ</label>
+      <select id="stuClass">
+        <option value="">— Сонгоно уу —</option>
+        <option>8А</option><option>8Б</option>
+        <option>9А</option><option>9Б</option><option>9В</option>
+        <option>10А</option><option>10Б</option><option>10В</option>
+        <option>11А</option><option>11Б</option><option>11В</option>
+        <option>12А</option><option>12Б</option><option>12В</option>
+      </select>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="submitForm()">✅ Бүртгэх</button>
+  </div>
+
+  <button class="btn-rescan" onclick="restartCamera()">↺ Дахин скан хийх</button>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-icon"  id="resultIcon"></div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-sub"   id="resultSub"></div>
+    <button class="btn-next"  onclick="restartCamera()">↺ Дараагийн ном скан хийх</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// ⚙️  ТОХИРГОО — Apps Script Web App URL-г оруулна
+// ══════════════════════════════════════════════════════
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbygjKsUS16o4-GH4hwSao0YW_trkhaAv8m2hl-gCoi3xxyD9b74arwgCGvaH3lHNeVFpw/exec";
+// ══════════════════════════════════════════════════════
+
+let stream         = null;
+let scanInterval   = null;
+let selectedAction = "Түрээслэх";
+let currentBookId  = "";
+
+// ── КАМЕР ЗӨВШӨӨРӨЛ ──────────────────────────────────
+async function requestCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+    showScreen("camera");
+    const video = document.getElementById("camera-video");
+    video.srcObject = stream;
+    await video.play();
+    scanInterval = setInterval(scanFrame, 250);
+  } catch (err) {
+    const desc = document.querySelector(".perm-desc");
+    if (err.name === "NotAllowedError") {
+      desc.innerHTML = "❌ Камерын зөвшөөрөл татгалзсан.<br><br>Браузерын тохиргоо → Камер → Зөвшөөрөөд хуудсыг дахин ачаалаарай.";
+    } else {
+      desc.innerHTML = "❌ Камер нээгдсэнгүй.<br>" + err.message + "<br><br>Хуудсыг дахин ачаалж үзнэ үү.";
+    }
+  }
+}
+
+// ── QR SCAN LOOP ──────────────────────────────────────
+function scanFrame() {
+  const video  = document.getElementById("camera-video");
+  const canvas = document.getElementById("camera-canvas");
+  if (!video.videoWidth || typeof jsQR !== "function") return;
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0);
+
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code    = jsQR(imgData.data, imgData.width, imgData.height, {
+    inversionAttempts: "dontInvert"
+  });
+
+  if (code && code.data) {
+    clearInterval(scanInterval); scanInterval = null;
+    setStatus("✅ QR уншлаа!", "success");
+    const bookId = code.data.split("|")[0].trim();
+    setTimeout(() => {
+      stopStream();
+      showForm(bookId);
+    }, 500);
+  }
+}
+
+function stopStream() {
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById("cam-status");
+  el.textContent = msg;
+  el.className   = "cam-status " + (cls || "");
+}
+
+// ── ДЭЛГЭЦ УДИРДЛАГА ─────────────────────────────────
+function showScreen(name) {
+  document.getElementById("permission-screen").style.display = name === "permission" ? "flex"   : "none";
+  document.getElementById("camera-screen")    .style.display = name === "camera"     ? "flex"   : "none";
+  document.getElementById("form-screen")      .style.display = name === "form"       ? "flex"   : "none";
+}
+
+function showForm(bookId) {
+  currentBookId = bookId;
+  document.getElementById("badge-book-id").textContent = bookId;
+  document.getElementById("resultCard").style.display  = "none";
+  document.getElementById("stuName").value  = "";
+  document.getElementById("stuClass").value = "";
+  showScreen("form");
+  setTimeout(() => document.getElementById("stuName").focus(), 300);
+}
+
+// ── FORM ──────────────────────────────────────────────
+function setAction(action) {
+  selectedAction = action;
+  document.getElementById("tab-loan")  .classList.toggle("active", action === "Түрээслэх");
+  document.getElementById("tab-return").classList.toggle("active", action === "Буцаалт");
+}
+
+async function submitForm() {
+  const stuName  = document.getElementById("stuName").value.trim();
+  const stuClass = document.getElementById("stuClass").value;
+
+  if (!currentBookId) { alert("Номын QR скан хийнэ үү!"); return; }
+  if (!stuName)        { alert("Сурагчийн нэр оруулна уу!"); return; }
+  if (!stuClass)       { alert("Анги бүлэг сонгоно уу!"); return; }
+
+  const btn = document.getElementById("submitBtn");
+  btn.textContent = "⏳ Бүртгэж байна...";
+  btn.disabled    = true;
+
+  try {
+    const res  = await fetch(WEB_APP_URL, {
+      method : "POST",
+      body   : JSON.stringify({
+        bookId   : currentBookId,
+        action   : selectedAction,
+        stuName  : stuName,
+        stuClass : stuClass
+      })
+    });
+    const data = await res.json();
+    showResult(data);
+  } catch (e) {
+    showResult({ success: false, message: "Сүлжээний алдаа: " + e.message });
+  }
+
+  btn.textContent = "✅ Бүртгэх";
+  btn.disabled    = false;
+}
+
+function showResult(data) {
+  const card = document.getElementById("resultCard");
+  card.className = "result-card " + (data.success ? "success" : "error");
+  card.style.display = "block";
+  document.getElementById("resultIcon") .textContent = data.success ? "✅" : "❌";
+  document.getElementById("resultTitle").textContent = data.message;
+  document.getElementById("resultSub")  .textContent = data.success
+    ? (data.dueDate ? "📅 Буцаах огноо: " + data.dueDate : "📖 " + data.bookName)
+    : "";
+  card.scrollIntoView({ behavior: "smooth" });
+}
+
+async function restartCamera() {
+  showScreen("permission");
+  document.getElementById("resultCard").style.display = "none";
+  currentBookId = "";
+  setStatus("🔍 Хайж байна...", "");
+  // Шууд камер нээнэ
+  await requestCamera();
+}
+</script>
+</body>
+</html>
