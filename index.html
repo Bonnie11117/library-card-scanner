@@ -4,68 +4,85 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>📚 Номын сан</title>
+<!-- jsQR эхлээд бүрэн ачааллана -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-  .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 20px; }
   .screen.active { display: flex; }
-  #s-perm { background: #0f172a; gap: 20px; text-align: center; }
+
+  /* PERMISSION */
+  #s-perm { background: #0f172a; text-align: center; }
   .perm-icon  { font-size: 72px; }
   .perm-title { font-size: 24px; font-weight: 800; color: #f1f5f9; }
   .perm-desc  { font-size: 14px; color: #64748b; line-height: 1.7; max-width: 300px; }
-  .perm-btn { width:100%; max-width:300px; padding:16px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:14px; font-size:17px; font-weight:800; cursor:pointer; }
-  #s-cam { background:#000; padding:0; position:relative; justify-content:center; }
-  #vid { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-  .cam-ui { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:20px; width:100%; padding:32px 20px; }
-  .cam-label { font-size:15px; font-weight:700; color:#fff; text-shadow:0 2px 8px #000; text-align:center; }
-  .box { width:256px; height:256px; position:relative; }
-  .c { position:absolute; width:28px; height:28px; border-color:#818cf8; border-style:solid; }
-  .c-tl{top:0;left:0;border-width:4px 0 0 4px} .c-tr{top:0;right:0;border-width:4px 4px 0 0}
-  .c-bl{bottom:0;left:0;border-width:0 0 4px 4px} .c-br{bottom:0;right:0;border-width:0 4px 4px 0}
-  .line { position:absolute; left:4px; right:4px; height:2px; background:linear-gradient(90deg,transparent,#818cf8,#c7d2fe,#818cf8,transparent); box-shadow:0 0 8px #6366f1; animation:sc 1.8s ease-in-out infinite; }
-  @keyframes sc { 0%{top:6px;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{top:246px;opacity:0} }
-  .cam-hint { font-size:13px; color:rgba(255,255,255,0.6); text-shadow:0 1px 4px #000; text-align:center; }
-  .cam-status { background:rgba(15,23,42,0.85); backdrop-filter:blur(8px); border-radius:20px; padding:10px 20px; font-size:14px; font-weight:600; color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); }
-  .cam-status.ok { background:rgba(20,83,45,0.9); color:#86efac; border-color:#22c55e; }
-  #cnv { display:none; }
-  #s-form { justify-content:flex-start; padding-top:28px; gap:14px; }
-  .fhead { text-align:center; }
-  .fhead h1 { font-size:22px; font-weight:800; }
-  .fhead p  { font-size:12px; color:#64748b; margin-top:3px; }
-  .badge { width:100%; max-width:420px; background:#14532d; border:1px solid #22c55e; border-radius:14px; padding:14px 18px; display:flex; align-items:center; gap:12px; }
-  .badge-icon { font-size:30px; }
-  .badge-lbl  { font-size:10px; color:#4ade80; letter-spacing:1px; font-weight:700; text-transform:uppercase; }
-  .badge-id   { font-size:18px; font-weight:800; color:#86efac; font-family:monospace; margin-top:2px; }
-  .card { background:#1e293b; border:1px solid #334155; border-radius:14px; padding:18px; width:100%; max-width:420px; }
-  .ctitle { font-size:10px; font-weight:700; color:#6366f1; letter-spacing:2px; margin-bottom:14px; text-transform:uppercase; }
-  .tabs { display:flex; gap:8px; margin-bottom:14px; }
-  .tab { flex:1; padding:11px; border:2px solid #334155; border-radius:10px; background:none; color:#94a3b8; font-size:14px; font-weight:700; cursor:pointer; }
-  .tab.on { border-color:#6366f1; background:#1e1b4b; color:#a5b4fc; }
-  .ig { margin-bottom:13px; }
-  label { font-size:11px; color:#64748b; display:block; margin-bottom:5px; font-weight:600; }
-  input, select { width:100%; padding:11px 14px; background:#0f172a; border:1px solid #334155; border-radius:9px; color:#e2e8f0; font-size:15px; outline:none; -webkit-appearance:none; }
-  input:focus, select:focus { border-color:#6366f1; }
-  .btn-go { width:100%; padding:15px; background:linear-gradient(135deg,#059669,#10b981); color:#fff; border:none; border-radius:12px; font-size:17px; font-weight:800; cursor:pointer; margin-top:4px; }
-  .btn-go:disabled { opacity:0.5; }
-  .btn-back { width:100%; max-width:420px; padding:12px; background:none; border:1px solid #334155; border-radius:12px; color:#64748b; font-size:14px; cursor:pointer; }
-  .res { display:none; width:100%; max-width:420px; padding:26px; border-radius:14px; text-align:center; }
-  .res.ok  { background:#14532d; border:1px solid #22c55e; }
-  .res.err { background:#450a0a; border:1px solid #ef4444; }
-  .res-ico { font-size:48px; margin-bottom:10px; }
-  .res-ttl { font-size:18px; font-weight:700; margin-bottom:6px; }
-  .res-sub { font-size:13px; color:#94a3b8; margin-bottom:16px; }
-  .btn-next { width:100%; padding:13px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; }
+  .perm-btn {
+    width: 100%; max-width: 300px; padding: 16px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; border: none; border-radius: 14px;
+    font-size: 17px; font-weight: 800; cursor: pointer;
+  }
+
+  /* CAMERA */
+  #s-cam { background: #000; padding: 0; position: fixed; inset: 0; z-index: 10; min-height: unset; justify-content: center; }
+  #vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #cnv { display: none; }
+  .cam-ui { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; padding: 32px 20px; }
+  .cam-label { font-size: 15px; font-weight: 700; color: #fff; text-shadow: 0 2px 8px #000; text-align: center; }
+  .box { width: 256px; height: 256px; position: relative; }
+  .c { position: absolute; width: 28px; height: 28px; border-color: #818cf8; border-style: solid; }
+  .c-tl { top:0; left:0; border-width: 4px 0 0 4px; }
+  .c-tr { top:0; right:0; border-width: 4px 4px 0 0; }
+  .c-bl { bottom:0; left:0; border-width: 0 0 4px 4px; }
+  .c-br { bottom:0; right:0; border-width: 0 4px 4px 0; }
+  .line { position: absolute; left: 4px; right: 4px; height: 2px; background: linear-gradient(90deg, transparent, #818cf8, #c7d2fe, #818cf8, transparent); box-shadow: 0 0 8px #6366f1; animation: sc 1.8s ease-in-out infinite; }
+  @keyframes sc { 0% { top: 6px; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 246px; opacity: 0; } }
+  .cam-hint { font-size: 13px; color: rgba(255,255,255,0.65); text-shadow: 0 1px 4px #000; text-align: center; }
+  .cam-status { background: rgba(15,23,42,0.85); backdrop-filter: blur(8px); border-radius: 20px; padding: 10px 20px; font-size: 14px; font-weight: 600; color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+  .cam-status.ok { background: rgba(20,83,45,0.9); color: #86efac; border-color: #22c55e; }
+
+  /* FORM */
+  #s-form { justify-content: flex-start; padding-top: 28px; }
+  .fhead { text-align: center; }
+  .fhead h1 { font-size: 22px; font-weight: 800; }
+  .fhead p  { font-size: 12px; color: #64748b; margin-top: 3px; }
+  .badge { width: 100%; max-width: 420px; background: #14532d; border: 1px solid #22c55e; border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; }
+  .badge-icon { font-size: 30px; }
+  .badge-lbl  { font-size: 10px; color: #4ade80; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+  .badge-id   { font-size: 18px; font-weight: 800; color: #86efac; font-family: monospace; margin-top: 2px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 18px; width: 100%; max-width: 420px; }
+  .ctitle { font-size: 10px; font-weight: 700; color: #6366f1; letter-spacing: 2px; margin-bottom: 14px; text-transform: uppercase; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab { flex: 1; padding: 11px; border: 2px solid #334155; border-radius: 10px; background: none; color: #94a3b8; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .tab.on { border-color: #6366f1; background: #1e1b4b; color: #a5b4fc; }
+  .ig { margin-bottom: 13px; }
+  label { font-size: 11px; color: #64748b; display: block; margin-bottom: 5px; font-weight: 600; }
+  input, select { width: 100%; padding: 11px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 9px; color: #e2e8f0; font-size: 15px; outline: none; -webkit-appearance: none; }
+  input:focus, select:focus { border-color: #6366f1; }
+  .btn-go { width: 100%; padding: 15px; background: linear-gradient(135deg, #059669, #10b981); color: #fff; border: none; border-radius: 12px; font-size: 17px; font-weight: 800; cursor: pointer; margin-top: 4px; }
+  .btn-go:disabled { opacity: 0.5; }
+  .btn-back { width: 100%; max-width: 420px; padding: 12px; background: none; border: 1px solid #334155; border-radius: 12px; color: #64748b; font-size: 14px; cursor: pointer; }
+  .res { display: none; width: 100%; max-width: 420px; padding: 26px; border-radius: 14px; text-align: center; }
+  .res.ok  { background: #14532d; border: 1px solid #22c55e; }
+  .res.err { background: #450a0a; border: 1px solid #ef4444; }
+  .res-ico { font-size: 48px; margin-bottom: 10px; }
+  .res-ttl { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .res-sub { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+  .btn-next { width: 100%; padding: 13px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body>
 
+<!-- PERMISSION -->
 <div id="s-perm" class="screen active">
   <div class="perm-icon">📚</div>
   <div class="perm-title">Номын сан</div>
   <div class="perm-desc" id="permDesc">Номын QR кодыг уншихын тулд камерын зөвшөөрөл шаардлагатай.<br><br>Товч дарахад <strong>Allow</strong> дарна уу.</div>
-  <button class="perm-btn" id="permBtn">📷 Камер нээж эхлэх</button>
+  <button class="perm-btn" id="permBtn" onclick="startCam()">📷 Камер нээж эхлэх</button>
 </div>
 
+<!-- CAMERA -->
 <div id="s-cam" class="screen">
   <video id="vid" playsinline autoplay muted></video>
   <canvas id="cnv"></canvas>
@@ -77,10 +94,11 @@
       <div class="line"></div>
     </div>
     <div class="cam-hint">QR кодыг хүрээн дотор байрлуулна уу</div>
-    <div class="cam-status" id="camStat">⏳ Камер бэлдэж байна...</div>
+    <div class="cam-status" id="camStat">🔍 Хайж байна...</div>
   </div>
 </div>
 
+<!-- FORM -->
 <div id="s-form" class="screen">
   <div class="fhead"><h1>📚 Номын сан</h1><p>Мэдээлэл оруулж бүртгэнэ үү</p></div>
   <div class="badge">
@@ -98,7 +116,7 @@
     </div>
     <div class="ig">
       <label>СУРАГЧИЙН НЭР</label>
-      <input type="text" id="stuName" placeholder="Овог Нэр" autocorrect="off">
+      <input type="text" id="stuName" placeholder="Овог Нэр" autocorrect="off" autocomplete="name">
     </div>
     <div class="ig">
       <label>АНГИ БҮЛЭГ</label>
@@ -123,12 +141,12 @@
 </div>
 
 <script>
-const API    = "https://script.google.com/macros/s/AKfycbygjKsUS16o4-GH4hwSao0YW_trkhaAv8m2hl-gCoi3xxyD9b74arwgCGvaH3lHNeVFpw/exec";
-let stream   = null;
-let timer    = null;
-let locked   = false;
-let act      = "Түрээслэх";
-let curId    = "";
+const API  = "https://script.google.com/macros/s/AKfycbygjKsUS16o4-GH4hwSao0YW_trkhaAv8m2hl-gCoi3xxyD9b74arwgCGvaH3lHNeVFpw/exec";
+let stream = null;
+let timer  = null;
+let locked = false;
+let act    = "Түрээслэх";
+let curId  = "";
 
 function show(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
@@ -141,22 +159,19 @@ function setStat(msg, cls) {
   el.className = "cam-status " + (cls || "");
 }
 
-// jsQR-г ачаалж дуусаад камер нээнэ
-document.getElementById("permBtn").onclick = function() {
-  this.disabled = true;
-  this.textContent = "⏳ Ачааллаж байна...";
-  const s = document.createElement("script");
-  s.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
-  s.onload  = openCam;
-  s.onerror = () => {
-    document.getElementById("permDesc").innerHTML = "❌ Интернет холболт шалгана уу.";
-    document.getElementById("permBtn").disabled = false;
-    document.getElementById("permBtn").textContent = "📷 Дахин оролдох";
-  };
-  document.head.appendChild(s);
-};
+async function startCam() {
+  const btn = document.getElementById("permBtn");
+  btn.disabled = true;
+  btn.textContent = "⏳ Нээж байна...";
 
-async function openCam() {
+  // jsQR ачааллагдсан эсэх шалгана
+  if (typeof jsQR !== "function") {
+    document.getElementById("permDesc").innerHTML = "❌ jsQR ачааллагдсангүй. Интернет шалгаад хуудсыг дахин ачаалаарай.";
+    btn.disabled = false;
+    btn.textContent = "📷 Камер нээж эхлэх";
+    return;
+  }
+
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -164,19 +179,23 @@ async function openCam() {
     const vid = document.getElementById("vid");
     vid.srcObject = stream;
     vid.onloadedmetadata = function() {
-      vid.play();
-      show("s-cam");
-      locked = false;
-      setStat("🔍 Хайж байна...", "");
-      timer = setInterval(tick, 250);
+      vid.play().then(() => {
+        show("s-cam");
+        locked = false;
+        setStat("🔍 Хайж байна...", "");
+        // Камер бэлдэхэд хугацаа өгнө
+        setTimeout(() => {
+          timer = setInterval(tick, 200);
+        }, 800);
+      });
     };
   } catch(e) {
-    document.getElementById("permBtn").disabled = false;
-    document.getElementById("permBtn").textContent = "📷 Камер нээж эхлэх";
+    btn.disabled = false;
+    btn.textContent = "📷 Камер нээж эхлэх";
     document.getElementById("permDesc").innerHTML =
       e.name === "NotAllowedError"
-        ? "❌ Зөвшөөрөл татгалзсан.<br><br>Утасны тохиргоо → Safari/Chrome → Камер → Зөвшөөр → Хуудсыг дахин ачаал."
-        : "❌ Камер нээгдсэнгүй.<br>" + e.message;
+        ? "❌ Зөвшөөрөл татгалзсан.<br><br>Утасны тохиргоо → Safari → Камер → Зөвшөөр → Хуудсыг дахин ачаалаарай."
+        : "❌ Камер нээгдсэнгүй: " + e.message;
   }
 }
 
@@ -186,29 +205,38 @@ function stopCam() {
 }
 
 function tick() {
-  if (locked || !window.jsQR) return;
+  if (locked) return;
   const vid = document.getElementById("vid");
   const cnv = document.getElementById("cnv");
-  if (!vid.videoWidth) return;
+  if (!vid.videoWidth || !vid.videoHeight) return;
+
   cnv.width  = vid.videoWidth;
   cnv.height = vid.videoHeight;
   const ctx  = cnv.getContext("2d", { willReadFrequently: true });
-  ctx.drawImage(vid, 0, 0);
-  const d    = ctx.getImageData(0, 0, cnv.width, cnv.height);
-  const code = jsQR(d.data, d.width, d.height, { inversionAttempts: "dontInvert" });
-  if (!code || !code.data) return;
-  locked = true;
-  const raw = code.data.trim();
-  let id = "";
-  if (raw.startsWith("http")) {
-    const m = raw.match(/[?&][^=]+=([^&]+)(?:&|$)/g);
-    if (m) { const last = m[m.length-1]; id = decodeURIComponent(last.split("=")[1].replace(/&$/,"")); }
-    else    { id = raw; }
-  } else {
-    id = raw.split("|")[0].trim();
+  ctx.drawImage(vid, 0, 0, cnv.width, cnv.height);
+
+  const imgData = ctx.getImageData(0, 0, cnv.width, cnv.height);
+  const code    = jsQR(imgData.data, imgData.width, imgData.height, {
+    inversionAttempts: "dontInvert"
+  });
+
+  if (code && code.data && code.data.trim().length > 0) {
+    locked = true;
+    const raw = code.data.trim();
+    let id = "";
+
+    if (raw.startsWith("http")) {
+      // Form URL-аас сүүлийн = тэмдгийн ард байгаа утгыг авна
+      const parts = raw.split("=");
+      id = decodeURIComponent(parts[parts.length - 1].replace(/&.*$/, "").trim());
+    } else {
+      // Plain QR: "BK-001|Номын нэр" → "BK-001"
+      id = raw.split("|")[0].trim();
+    }
+
+    setStat("✅ Уншлаа: " + id, "ok");
+    setTimeout(() => { stopCam(); showForm(id); }, 500);
   }
-  setStat("✅ Уншлаа: " + id, "ok");
-  setTimeout(() => { stopCam(); showForm(id); }, 600);
 }
 
 function showForm(id) {
@@ -218,7 +246,7 @@ function showForm(id) {
   document.getElementById("stuClass").value = "";
   document.getElementById("resCard").style.display = "none";
   show("s-form");
-  setTimeout(() => document.getElementById("stuName").focus(), 300);
+  setTimeout(() => document.getElementById("stuName").focus(), 400);
 }
 
 function setAct(a) {
@@ -232,15 +260,21 @@ async function doSubmit() {
   const cls  = document.getElementById("stuClass").value;
   if (!name) { alert("Сурагчийн нэр оруулна уу!"); return; }
   if (!cls)  { alert("Анги бүлэг сонгоно уу!"); return; }
+
   const btn = document.getElementById("subBtn");
   btn.textContent = "⏳ Бүртгэж байна...";
   btn.disabled = true;
+
   try {
-    const r = await fetch(API, { method:"POST", body: JSON.stringify({ bookId:curId, action:act, stuName:name, stuClass:cls }) });
+    const r = await fetch(API, {
+      method: "POST",
+      body: JSON.stringify({ bookId: curId, action: act, stuName: name, stuClass: cls })
+    });
     showRes(await r.json());
   } catch(e) {
-    showRes({ success:false, message:"Сүлжээний алдаа: " + e.message });
+    showRes({ success: false, message: "Сүлжээний алдаа: " + e.message });
   }
+
   btn.textContent = "✅ Бүртгэх";
   btn.disabled = false;
 }
@@ -251,17 +285,19 @@ function showRes(d) {
   el.style.display = "block";
   document.getElementById("resIco").textContent = d.success ? "✅" : "❌";
   document.getElementById("resTtl").textContent = d.message;
-  document.getElementById("resSub").textContent = d.success ? (d.dueDate ? "📅 Буцаах огноо: "+d.dueDate : "📖 "+d.bookName) : "";
-  el.scrollIntoView({ behavior:"smooth" });
+  document.getElementById("resSub").textContent = d.success
+    ? (d.dueDate ? "📅 Буцаах огноо: " + d.dueDate : "📖 " + d.bookName) : "";
+  el.scrollIntoView({ behavior: "smooth" });
 }
 
 async function goScan() {
   locked = false; curId = "";
+  stopCam();
   document.getElementById("resCard").style.display = "none";
   document.getElementById("permBtn").disabled = false;
   document.getElementById("permBtn").textContent = "📷 Камер нээж эхлэх";
   show("s-perm");
-  document.getElementById("permBtn").click();
+  startCam();
 }
 </script>
 </body>
