@@ -326,7 +326,13 @@ function scanFrame() {
   if (code && code.data) {
     clearInterval(scanInterval); scanInterval = null;
     setStatus("✅ QR уншлаа!", "success");
-    const bookId = code.data.split("|")[0].trim();
+    let raw = code.data.trim();
+    let bookId = "";
+    if (raw.includes("entry.") && raw.includes("=")) {
+      bookId = decodeURIComponent(raw.split("=").pop().trim());
+    } else {
+      bookId = raw.split("|")[0].trim();
+    }
     setTimeout(() => {
       stopStream();
       showForm(bookId);
